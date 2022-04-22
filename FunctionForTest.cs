@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Identity.Client;
 using System;
+using System.IO;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -21,8 +22,16 @@ namespace Flavio.FunctionTest
         {
             log.LogInformation("C# HTTP trigger FunctionForTest processed a request.");
 
-            if (!int.TryParse(req.Query["max"], out int max))
-                return new BadRequestObjectResult(new {Error = "Invalid or no valid MAX param"});
+            string maxString = null;
+            if(req.Method == "GET")
+                maxString = req.Query["max"];
+            else if(req.Method == "POST"){
+                string bodyString = await new StreamReader(req.Body).ReadToEndAsync();
+                dynamic body = Newtonsoft.Json.JsonConvert.DeserializeObject(bodyString);
+                maxString = body?.max;
+            }
+            if (!int.TryParse(maxString, out int max))
+                return new BadRequestObjectResult(new {Error = "Invalid or not found MAX param"});
 
             string[] scopes = new string[] { "https://graph.microsoft.com/.default" };
 
