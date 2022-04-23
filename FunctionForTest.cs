@@ -6,7 +6,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Identity.Client;
-using System;
 using System.IO;
 using System.Linq;
 using System.Net.Http.Headers;

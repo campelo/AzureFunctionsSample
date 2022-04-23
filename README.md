@@ -16,7 +16,7 @@ And add your three new values
 ```powershell
 dotnet user-secrets set "tenantId" "{MY_TENANT_ID}" # It's a GUID value like '12345678-1234-1234-1234-1234567890ab'. You can get this value on your tenant's overview page. https://aad.portal.azure.com/
 dotnet user-secrets set "clientId" "{MY_CLIENT_ID}" # It's a GUID value like '12345678-1234-1234-1234-1234567890ab'. You can get this value on your app registration's overview page. https://portal.azure.com/
-dotnet user-secrets set "clientSecret" "{MY_CLIENT_SECRET}" # It's like an ecrypted password Q~nfpjRObkLeRjQsyD. You can get this value once when you create a new client secret on your app registration's page. https://portal.azure.com/
+dotnet user-secrets set "clientSecret" "{MY_CLIENT_SECRET}" # It's like an ecrypted password Q~nfhpjRgObkjLeRmjQTsryD. You can get this value once when you create a new client secret on your app registration's page. https://portal.azure.com/
 ```
 
 After that you be able to make calls to this function. For this sample, you can make a GET or POST requests.
