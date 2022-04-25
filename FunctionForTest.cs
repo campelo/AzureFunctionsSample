@@ -5,10 +5,8 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
-using Microsoft.Identity.Client;
 using System.IO;
 using System.Linq;
-using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
 namespace Flavio.FunctionTest
@@ -16,10 +14,12 @@ namespace Flavio.FunctionTest
   public class FunctionForTest
   {
     private readonly IConfiguration _configuration;
+    private readonly IGraphClientService _graphClientService;
 
-    public FunctionForTest(IConfiguration configuration)
+    public FunctionForTest(IConfiguration configuration, IGraphClientService graphClientService)
     {
       _configuration = configuration;
+      _graphClientService = graphClientService;
     }
 
     [FunctionName("FunctionForTest")]
@@ -51,24 +51,7 @@ namespace Flavio.FunctionTest
         return new BadRequestObjectResult(new { Error = "Invalid or not found MAX param" });
 
       string[] scopes = new string[] { "https://graph.microsoft.com/.default" };
-
-      IConfidentialClientApplication msalClient = ConfidentialClientApplicationBuilder
-          .Create(clientId)
-          .WithAuthority(AadAuthorityAudience.AzureAdMyOrg, true)
-          .WithTenantId(tenantId)
-          .WithClientSecret(clientSecret)
-          .Build();
-
-      string token = null;
-      AuthenticationResult cacheResult = await msalClient.AcquireTokenForClient(scopes).ExecuteAsync();
-      token = cacheResult.AccessToken;
-
-      GraphServiceClient graphClient = new GraphServiceClient(new DelegateAuthenticationProvider(
-          async (requestMessage) =>
-          {
-            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            await Task.FromResult(0);
-          }));
+      GraphServiceClient graphClient = await this._graphClientService.GetGraphClient(clientId, clientSecret, tenantId, scopes);
 
       var response = await graphClient.Users.Request().GetAsync();
 
