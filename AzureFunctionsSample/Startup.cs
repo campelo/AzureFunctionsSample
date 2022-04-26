@@ -9,7 +9,7 @@ namespace Flavio.FunctionTest
     {
         public override void Configure(IFunctionsHostBuilder builder)
         {
-            builder.Services.AddTransient<IGraphClientService, GraphClientService>();
+            builder.Services.AddSingleton<IGraphClientService, GraphClientService>();
         }
     }
 }
