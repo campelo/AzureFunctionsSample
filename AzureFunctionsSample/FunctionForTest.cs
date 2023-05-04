@@ -1,62 +1,86 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
+using Newtonsoft.Json;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Flavio.FunctionTest
+namespace Flavio.FunctionTest;
+
+public class FunctionForTest
 {
-    public class FunctionForTest
+    private readonly IConfiguration _configuration;
+    private readonly IGraphClientService _graphClientService;
+
+    public FunctionForTest(IConfiguration configuration, IGraphClientService graphClientService)
     {
-        private readonly IConfiguration _configuration;
-        private readonly IGraphClientService _graphClientService;
+        _configuration = configuration;
+        _graphClientService = graphClientService;
+    }
 
-        public FunctionForTest(IConfiguration configuration, IGraphClientService graphClientService)
+    [Function(nameof(Run))]
+    public async Task<HttpResponseData> Run(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequestData req,
+        ILogger log)
+    {
+        log.LogInformation("C# HTTP trigger FunctionForTest processed a request.");
+
+        string clientId = _configuration["ClientId"];
+        string clientSecret = _configuration["ClientSecret"];
+        string tenantId = _configuration["TenantId"];
+
+        if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret) || string.IsNullOrEmpty(tenantId))
         {
-            _configuration = configuration;
-            _graphClientService = graphClientService;
+            var resp = req.CreateResponse();
+            resp.StatusCode = System.Net.HttpStatusCode.BadRequest;
+            resp.WriteString("Please set ClientId, ClientSecret and TenantId. https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets");
+            return resp;
         }
 
-        [FunctionName("FunctionForTest")]
-        public async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
-            ILogger log)
+        string maxString = null;
+        if (req.Method == "GET")
+            maxString = req.Query["max"];
+        else if (req.Method == "POST")
         {
-            log.LogInformation("C# HTTP trigger FunctionForTest processed a request.");
-
-            string clientId = _configuration["ClientId"];
-            string clientSecret = _configuration["ClientSecret"];
-            string tenantId = _configuration["TenantId"];
-
-            if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret) || string.IsNullOrEmpty(tenantId))
-            {
-                return new BadRequestObjectResult(new { Error = "Please set ClientId, ClientSecret and TenantId. https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets" });
-            }
-
-            string maxString = null;
-            if (req.Method == "GET")
-                maxString = req.Query["max"];
-            else if (req.Method == "POST")
-            {
-                string bodyString = await new StreamReader(req.Body).ReadToEndAsync();
-                dynamic body = Newtonsoft.Json.JsonConvert.DeserializeObject(bodyString);
-                maxString = body?.max;
-            }
-            if (!int.TryParse(maxString, out int max))
-                return new BadRequestObjectResult(new { Error = "Invalid or not found MAX param" });
-
-            string[] scopes = new string[] { "https://graph.microsoft.com/.default" };
-            GraphServiceClient graphClient = await this._graphClientService.GetGraphClient(clientId, clientSecret, tenantId, scopes);
-
-            var response = await graphClient.Users.Request().GetAsync();
-
-            return new OkObjectResult(response.CurrentPage.Take(max)
-                .Select(u => new { u.Id, u.DisplayName, u.GivenName, LastName = u.Surname }));
+            string bodyString = await new StreamReader(req.Body).ReadToEndAsync();
+            dynamic body = JsonConvert.DeserializeObject(bodyString);
+            maxString = body?.max;
         }
+        if (!int.TryParse(maxString, out int max))
+        {
+            var resp = req.CreateResponse();
+            resp.StatusCode = System.Net.HttpStatusCode.BadRequest;
+            resp.WriteString("Invalid or not found MAX param");
+            return resp;
+        }
+
+        string[] scopes = new string[] { "https://graph.microsoft.com/.default" };
+        GraphServiceClient graphClient = await this._graphClientService.GetGraphClient(clientId, clientSecret, tenantId, scopes);
+
+        var response = await graphClient.Users.Request().GetAsync();
+
+        var result = req.CreateResponse();
+        result.StatusCode = System.Net.HttpStatusCode.OK;
+        result.WriteString(JsonConvert.SerializeObject(response.CurrentPage.Take(max)
+            .Select(u => new { u.Id, u.DisplayName, u.GivenName, LastName = u.Surname })));
+        return result;
+    }
+
+    [Function(nameof(ShowSettings))]
+    public async Task<HttpResponseData> ShowSettings(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequestData req,
+        ILogger log)
+    {
+        var result = Environment.GetEnvironmentVariable("TestEnv");
+        log.LogInformation(result);
+
+        var resp = req.CreateResponse();
+        resp.StatusCode = System.Net.HttpStatusCode.OK;
+        resp.WriteString(result);
+        return resp;
     }
 }
