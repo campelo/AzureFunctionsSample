@@ -1,5 +1,3 @@
-using System.Net.Http.Headers;
-using System.Threading.Tasks;
 using Microsoft.Graph;
 using Microsoft.Identity.Client;
 
@@ -20,13 +18,14 @@ namespace AzFunctionsSample
             AuthenticationResult cacheResult = await msalClient.AcquireTokenForClient(scopes).ExecuteAsync();
             token = cacheResult.AccessToken;
 
-            GraphServiceClient graphClient = new GraphServiceClient(new DelegateAuthenticationProvider(
-                async (requestMessage) =>
-                {
-                    requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                    await Task.FromResult(0);
-                }));
-            return graphClient;
+            //GraphServiceClient graphClient = new(new DelegateAuthenticationProvider(
+            //    async (requestMessage) =>
+            //    {
+            //        requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            //        await Task.FromResult(0);
+            //    }));
+            //return graphClient;
+            return null;
         }
     }
 }

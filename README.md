@@ -1,8 +1,10 @@
 # Azure Functions Sample
 
+## Graph API
+
 This sample uses a MicrosoftGraph client credentials flow to get users on AD
 
-## Configuring your client credentials
+### Configuring your client credentials
 
 First of all, you should add some [secret configurations](https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets) before running this function.
 
@@ -21,19 +23,19 @@ dotnet user-secrets set "clientSecret" "{MY_CLIENT_SECRET}" # It's like an ecryp
 
 After that you be able to make calls to this function. For this sample, you can make a GET or POST requests.
 
-## GET
+### GET
 
 ```
 curl -X GET http://localhost:7071/api/FunctionForTest?max=2
 ```
 
-## POST
+### POST
 
 ```
 curl -X POST http://localhost:7071/api/FunctionForTest -H "Content-Type: application/json" -d "{ 'max': 2 }"
 ```
 
-## Response
+### Response
 
 The response will look like this
 
@@ -55,3 +57,41 @@ The response will look like this
     ]
 }
 ```
+
+## Service Bus
+
+- First, you need to have an Azure Service Bus created. You can create one using the Azure Portal or using the Azure CLI.
+- Add a service bus connection string in your local.settings.json file
+
+```json
+{
+  "IsEncrypted": false,
+  "Values": {
+	... // other environment variables
+	"ServiceBusConnectionString": "Endpoint=sb://my-service-bus.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=MY_SECRET_KEY"
+  }
+}
+```
+
+### Create a message
+
+Send a post message to CreateServiceBusMessage function
+
+```json
+[POST] http://localhost:7240/api/CreateServiceBusMessage
+
+{
+    "message": "test",
+    "value": 5
+}
+```
+
+or using curl
+
+```bash
+curl -X POST http://localhost:7240/api/CreateServiceBusMessage -H "Content-Type: application/json" -d "{ 'message': 'Hello World!', 'value': 5 }"
+```
+
+### Read queue messages
+
+All messages will be automatically read from the queue and processed by the FunctionForTest function.
