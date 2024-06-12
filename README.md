@@ -68,7 +68,9 @@ The response will look like this
   "IsEncrypted": false,
   "Values": {
 	... // other environment variables
-	"ServiceBusConnectionString": "Endpoint=sb://my-service-bus.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=MY_SECRET_KEY"
+	"ServiceBus__ConnectionString": "Endpoint=sb://my-service-bus.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=MY_SECRET_KEY"
+    "ServiceBus__Queue__Normal": "normal.queue.name",
+    "ServiceBus__Queue__Rejected": "rejected.queue.name"
   }
 }
 ```

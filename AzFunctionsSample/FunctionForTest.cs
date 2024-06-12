@@ -1,8 +1,10 @@
+using AzFunctionsSample.Options;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Graph;
 using Newtonsoft.Json;
 
@@ -12,9 +14,11 @@ public class FunctionForTest(
     ILoggerFactory loggerFactory,
     IConfiguration configuration,
     IGraphClientService graphClientService,
-    ServiceBusClient serviceBusClient)
+    ServiceBusClient serviceBusClient,
+    IOptions<ServiceBusOptions> serviceBusOptions)
 {
     private readonly ILogger log = loggerFactory.CreateLogger<FunctionForTest>();
+    private readonly ServiceBusOptions busOptions = serviceBusOptions.Value;
 
     [Function(nameof(Run))]
     public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequestData req)
@@ -98,7 +102,7 @@ public class FunctionForTest(
             return badResponse;
         }
 
-        ServiceBusSender sender = serviceBusClient.CreateSender("flow.normal");
+        ServiceBusSender sender = serviceBusClient.CreateSender(busOptions.Queue.Normal);
 
         try
         {
@@ -122,7 +126,7 @@ public class FunctionForTest(
 
     [Function("NormalFlow")]
     public async Task NormalFlow(
-        [ServiceBusTrigger("flow.normal", Connection = "ServiceBusConnectionString")]
+        [ServiceBusTrigger("%ServiceBus:Queue:Normal%", Connection = "ServiceBus:ConnectionString")]
         string myQueueItem, FunctionContext executionContext)
     {
         var logger = executionContext.GetLogger("NormalFlow");
@@ -133,7 +137,7 @@ public class FunctionForTest(
         MyMessage message = JsonConvert.DeserializeObject<MyMessage>(myQueueItem);
         if (message != null && message.Value < 10)
         {
-            ServiceBusSender sender = serviceBusClient.CreateSender("flow.rejected");
+            ServiceBusSender sender = serviceBusClient.CreateSender(busOptions.Queue.Rejected);
             try
             {
                 await sender.SendMessageAsync(new ServiceBusMessage(myQueueItem));
@@ -151,7 +155,7 @@ public class FunctionForTest(
 
     [Function("RejectedFlow")]
     public async Task RejectedFlow(
-        [ServiceBusTrigger("flow.rejected", Connection = "ServiceBusConnectionString")]
+        [ServiceBusTrigger("%ServiceBus:Queue:Rejected%", Connection = "ServiceBus:ConnectionString")]
         string myQueueItem, FunctionContext executionContext)
     {
         var logger = executionContext.GetLogger("RejectedFlow");
